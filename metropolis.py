@@ -1,6 +1,9 @@
 from random import random, randint
-from math import exp
-from sys import argv, stdout
+from math import exp, pi, cos, sin, sqrt, log
+from sys import argv, stdout, stderr
+from collections import defaultdict
+
+q = 10
 
 def delta(i, j):
     if i==j: return 1
@@ -9,22 +12,28 @@ def delta(i, j):
 def adjacent(l, x, y):
     for dx in [-1,0,1]:
         for dy in [-1,0,1]:
-            if 0 <= x+dx < l and 0 <= y+dy < l and dx*dy == 0:
-                yield (x+dx, y+dy)
+            if dx*dy == 0 and dx + dy != 0:
+                yield ((x+dx)%l, (y+dy)%l)
 
 def metropolis(l, n, k, beta):
-    for i in xrange(n):
-        lattice = [[0 for i in xrange(l)] for i in xrange(l)]
-        for j in xrange(k):
-            while True:
-                a, b = randint(0, l-1), randint(0, l-1)
-                de = 0
-                for x, y in adjacent(l, a, b):
-                    de += 1-delta(1-lattice[a][b], lattice[x][y])
-                if random() < exp(-beta*de):
-                    lattice[a][b] = 1-lattice[a][b]
-                    break
-        yield lattice
+    lattice = [[0 for i in xrange(l)] for i in xrange(l)]
+    e = 0
+    for a in xrange(l):
+        for b in xrange(l):
+            for x, y in adjacent(l, a, b):
+                e += delta(lattice[a][b], lattice[x][y])
+    for i in xrange(n + k):
+        while True:
+            a, b = randint(0, l-1), randint(0, l-1)
+            new_value = (lattice[a][b] + randint(-1, 1))%q
+            de = 0
+            for x, y in adjacent(l, a, b):
+                de += - delta(new_value, lattice[x][y]) + delta(lattice[a][b], lattice[x][y])
+            if random() < exp(-beta*de):
+                lattice[a][b] = new_value
+                e += de
+                if i > k: yield (e, lattice)
+                break
 
 def energy(lattice):
     e = 0
@@ -36,18 +45,38 @@ def energy(lattice):
     return e
 
 def magnetization(lattice):
-    m = 0
+    mx, my = 0, 0
     for x in lattice:
-        for y in x:
-            m += 1 if y==0 else -1
-    return m
+        for s in x:
+            mx += cos(s*2*pi/q)
+            my += sin(s*2*pi/q)
+    return (mx, my)
 
-n = 100
-l = 30
-k = l**3
+l = 50
+n = 1000000000
+k = 10000000
+beta = log(1+sqrt(q))
 
-for beta in xrange(1, 120, 1):
-    beta1 = float(beta)/100
-    m = float(sum(map(magnetization, metropolis(l, n, k, beta1))))/(n*l*l)
-    print beta1, m
-    stdout.flush()
+energies = defaultdict(int)
+min_e = 1e10
+max_e = 0
+
+for i, (e, lattice) in enumerate(metropolis(l, n, k, beta)):
+    e = int(2*e)
+    energies[e] += 1
+    min_e = min(min_e, e)
+    max_e = max(max_e, e)
+    if i%100000 == 0:
+        mx, my = magnetization(lattice)
+        for line in lattice:
+            for x in line:
+                print >>stderr, int(x),
+            print >>stderr, '\n',
+        print >>stderr, i, e, energies[e], sqrt(mx**2 + my**2)/(l**2)
+        stderr.flush()
+
+        output = open(argv[1], 'w')
+        for e in xrange(min_e, max_e+1):
+            if e in energies:
+                print >>output, e, energies[e]
+        output.close()
