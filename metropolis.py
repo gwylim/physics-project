@@ -13,7 +13,6 @@ def adjacent(l, x, y):
                 yield (x+dx, y+dy)
 
 def metropolis(l, n, k, beta):
-    result = []
     for i in xrange(n):
         lattice = [[0 for i in xrange(l)] for i in xrange(l)]
         for j in xrange(k):
@@ -25,9 +24,7 @@ def metropolis(l, n, k, beta):
                 if random() < exp(-beta*de):
                     lattice[a][b] = 1-lattice[a][b]
                     break
-
-        result.append(lattice)
-    return result
+        yield lattice
 
 def energy(lattice):
     e = 0
@@ -45,11 +42,11 @@ def magnetization(lattice):
             m += 1 if y==0 else -1
     return m
 
-n = int(argv[1])
-l = int(argv[2])
+n = 100
+l = 30
 k = l**3
 
-for beta in xrange(1, 100, 1):
+for beta in xrange(1, 120, 1):
     beta1 = float(beta)/100
     m = float(sum(map(magnetization, metropolis(l, n, k, beta1))))/(n*l*l)
     print beta1, m
