@@ -21,20 +21,25 @@ def metropolis(l, n, k, beta):
     for a in xrange(l):
         for b in xrange(l):
             for x, y in adjacent(l, a, b):
-                e += delta(lattice[a][b], lattice[x][y])
+                e += 1-delta(lattice[a][b], lattice[x][y])
     for i in xrange(n + k):
         while True:
             a, b = randint(0, l-1), randint(0, l-1)
-            new_value = (lattice[a][b] + randint(-1, 1))%q
+            new_value = randint(0, q-1)
             de = 0
             for x, y in adjacent(l, a, b):
                 de += - delta(new_value, lattice[x][y]) + delta(lattice[a][b], lattice[x][y])
             if random() < exp(-beta*de):
                 lattice[a][b] = new_value
                 e += de
-                if i > k: yield (e, lattice)
+                if i >= k: yield (e, lattice)
                 break
-
+        if i%100000 == 0:
+            e = 0
+            for a in xrange(l):
+                for b in xrange(l):
+                    for x, y in adjacent(l, a, b):
+                        e += 1-delta(lattice[a][b], lattice[x][y])
 def energy(lattice):
     e = 0
     l = len(lattice)
@@ -52,17 +57,16 @@ def magnetization(lattice):
             my += sin(s*2*pi/q)
     return (mx, my)
 
-l = 50
+l = 20
 n = 1000000000
 k = 10000000
-beta = log(1+sqrt(q))
+beta = log(1 + sqrt(q))
 
 energies = defaultdict(int)
 min_e = 1e10
 max_e = 0
 
 for i, (e, lattice) in enumerate(metropolis(l, n, k, beta)):
-    e = int(2*e)
     energies[e] += 1
     min_e = min(min_e, e)
     max_e = max(max_e, e)
@@ -80,3 +84,20 @@ for i, (e, lattice) in enumerate(metropolis(l, n, k, beta)):
             if e in energies:
                 print >>output, e, energies[e]
         output.close()
+
+'''
+l = 20
+k = 1000000
+f = 50
+
+for beta in xrange(1300, 1500, 5):
+    beta1 = beta/1000.0
+    m = 0.
+    for i in xrange(f):
+        e, lattice = metropolis(l, 1, k, beta1).next()
+        mx, my = magnetization(lattice)
+        m += sqrt(mx**2 + my**2)
+    m /= f*l*l
+    print beta1, m
+    stdout.flush()
+'''
