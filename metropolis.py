@@ -49,55 +49,46 @@ def energy(lattice):
                 e += 1-delta(lattice[a][b], lattice[x][y])
     return e
 
-def magnetization(lattice):
-    mx, my = 0, 0
-    for x in lattice:
-        for s in x:
-            mx += cos(s*2*pi/q)
-            my += sin(s*2*pi/q)
-    return (mx, my)
+if argv[1] == 'dist':
+    l = 20
+    n = 1000000000
+    k = 10000000
+    beta = log(1 + sqrt(q))
 
-l = 20
-n = 1000000000
-k = 10000000
-beta = log(1 + sqrt(q))
+    energies = defaultdict(int)
+    min_e = 1e10
+    max_e = 0
 
-energies = defaultdict(int)
-min_e = 1e10
-max_e = 0
+    for i, (e, lattice) in enumerate(metropolis(l, n, k, beta)):
+        energies[e] += 1
+        min_e = min(min_e, e)
+        max_e = max(max_e, e)
+        if i%100000 == 0:
+            for line in lattice:
+                for x in line:
+                    print >>stderr, int(x),
+                print >>stderr, '\n',
+            print >>stderr, i, e, energies[e]
+            stderr.flush()
 
-for i, (e, lattice) in enumerate(metropolis(l, n, k, beta)):
-    energies[e] += 1
-    min_e = min(min_e, e)
-    max_e = max(max_e, e)
-    if i%100000 == 0:
-        mx, my = magnetization(lattice)
-        for line in lattice:
-            for x in line:
-                print >>stderr, int(x),
-            print >>stderr, '\n',
-        print >>stderr, i, e, energies[e], sqrt(mx**2 + my**2)/(l**2)
-        stderr.flush()
+            output = open(argv[1], 'w')
+            for e in xrange(min_e, max_e+1):
+                if e in energies:
+                    print >>output, e, energies[e]
+            output.close()
+else:
+    l = 20
+    k = 2000000
+    f = 20
 
-        output = open(argv[1], 'w')
-        for e in xrange(min_e, max_e+1):
-            if e in energies:
-                print >>output, e, energies[e]
-        output.close()
-
-'''
-l = 20
-k = 1000000
-f = 50
-
-for beta in xrange(1300, 1500, 5):
-    beta1 = beta/1000.0
-    m = 0.
-    for i in xrange(f):
-        e, lattice = metropolis(l, 1, k, beta1).next()
-        mx, my = magnetization(lattice)
-        m += sqrt(mx**2 + my**2)
-    m /= f*l*l
-    print beta1, m
-    stdout.flush()
-'''
+    for beta in xrange(1400, 1450, 3):
+        beta1 = beta/1000.0
+        e = 0.0
+        for i in xrange(f):
+            e1, lattice = metropolis(l, 1, k, beta1).next()
+            print >>stderr, beta1, i, e1
+            stderr.flush()
+            e += e1
+        e /= f
+        print beta1, e
+        stdout.flush()
