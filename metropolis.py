@@ -50,10 +50,10 @@ def energy(lattice):
     return e
 
 if argv[1] == 'dist':
-    l = 20
-    n = 1000000000
-    k = 10000000
-    beta = log(1 + sqrt(q))
+    l = int(argv[3])
+    n = int(argv[4])
+    k = int(argv[5])
+    beta = float(argv[6])
 
     energies = defaultdict(int)
     min_e = 1e10
@@ -71,15 +71,15 @@ if argv[1] == 'dist':
             print >>stderr, i, e, energies[e]
             stderr.flush()
 
-            output = open(argv[1], 'w')
+            output = open(argv[2], 'w')
             for e in xrange(min_e, max_e+1):
                 if e in energies:
                     print >>output, e, energies[e]
             output.close()
 else:
-    l = 20
-    k = 2000000
-    f = 20
+    l = int(argv[1])
+    k = int(argv[2])
+    f = int(argv[3])
 
     for beta in xrange(1400, 1450, 3):
         beta1 = beta/1000.0
