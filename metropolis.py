@@ -80,15 +80,19 @@ else:
     l = int(argv[1])
     k = int(argv[2])
     f = int(argv[3])
+    a = int(argv[4])
+    b = int(argv[5])
+    s = int(argv[6])
 
-    for beta in xrange(1400, 1450, 3):
+    for beta in xrange(a, b, s):
         beta1 = beta/1000.0
-        e = 0.0
+        es = []
         for i in xrange(f):
-            e1, lattice = metropolis(l, 1, k, beta1).next()
-            print >>stderr, beta1, i, e1
+            e, lattice = metropolis(l, 1, k, beta1).next()
+            print >>stderr, beta1, i, e
             stderr.flush()
-            e += e1
-        e /= f
-        print beta1, e
+            es.append(e)
+        mean_e = float(sum(es))/f
+        stddev = sqrt(1.0/(f-1)*sum(map(lambda e: (e-mean_e)**2, es)))
+        print beta1, mean_e, stddev/sqrt(f)
         stdout.flush()
