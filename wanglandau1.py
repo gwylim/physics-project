@@ -120,5 +120,5 @@ def energy(lattice):
 
 l = int(argv[3])
 d = int(argv[4])
-for i, x in enumerate(wanglandau(l, 0.8, 1.0, 1e-8, 100000, d)):
+for i, x in enumerate(wanglandau(l, 0.8, 1.0, 1e-8, 1000000, d)):
     print i, x
