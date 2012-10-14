@@ -1,10 +1,130 @@
 \documentclass{article}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{listings}
+\author{Gwylim Ashley}
+\title{A comparison of the Metropolis and Wang-Landau algorithms applied to the Potts model}
 \begin{document}
-\section{Behavior for small energies}
+\maketitle
+\begin{abstract}
+We discuss the advantages and limitations of the Metropolis and Wang-Landau algorithms as applied to physical systems.
+In particular, we use the example of the Potts model, which exhibits a phase transition.
+We find that the shape of the Boltzmann distribution near the phase transition leads to slow convergence using the Metropolis algorithm for large lattices.
+Some general discussion of these algorithms is also included.
+\end{abstract}
+\section{Introduction}
+\subsection{The Potts model}
+The Potts model consists of an $n\times n$ lattice of particles.
+Each of these particles has a ``spin'', which is an integer in $\{0,...,q-1\}$, where $q$ is a parameter of the model.
+The particles interact only with their nearest neighbors; that is, each particle interacts with four other particles (where additionally we use periodic boundary conditions, so the particles at the edge of the lattice also have four nearest neighbors).
+The Hamiltonian of the system is given as:
+$$ H = \sum_{v, w \text{ adjacent}}(1-\delta(s_v, s_w)), $$
+where $s_v$, $s_w$ denote the spins of $v$ and $w$.
+
+Hence adjacent particles contribute to the energy if they have a different spin.
+We can see this as analogous to the interaction of dipoles, although of course this particular Hamiltonian is not possible in a physical system.
+
+For $q = 2$, this model is known as the Ising model.
+This system exhibits a first-order phase transition for $q \geq 4$, with a second-order phase transition for other $k$.\cite{Janke}\footnote{By ``first-order phase transition'' we mean a discontinuity in (expected) energy at a temperature $T$. In fact, this will not be discontinuous for a finite lattice. However, as we will see, there is rapid change at the transition temperature which becomes more so with increasing lattice size.}
+The temperature of this phase transition depends on $q$, being given by $\beta = \log(1+\sqrt q)$.\cite{Janke}
+Here we will consider only the case $q = 10$, giving $\beta \approx 1.42$.
+
+While the Potts model does not describe a physical system, it is a simple model that has interesting thermodynamics.
+Hence this model is useful in testing general algorithms, which can also be applied to other systems.
+
+\subsection{Random walks}
+We discuss here why random walks are a useful technique for analyzing the thermodynamic properties of systems, among other things.
+The essential property of random walks is that they tend to converge to some distribution, and this can allow us to obtain information about the distribution.
+Here we will analyze only the simple case of a random walk on a regular, connected, non-bipartite graph, as an example.
+
+A random walk is performed by starting at a particular vertex, and iteratively randomly moving to one of the adjacent vertices according to some probability distribution.
+We consider here choosing uniformly between the adjacent vertices.
+In this case, the result of taking a step in the random walk is to multiply the probability distribution over vertices, $v$, by a transition matrix $T$.
+In the special case that the graph is regular, this matrix is symmetric.
+Hence we can write $v = \lambda_1e_1 + ... + \lambda_ne_n$, where $e_1, ..., e_n$ are an eigenbasis of $T$ (using the spectral theorem).
+
+Now we show that all the eigenvalues are less than or equal to $1$ in absolute value.
+Given a vector $x$, we can write $x = x^+ - x^-$, where $x^+$ and $x^-$ have only non-negative components.
+But then $x^+$ and $x^-$ are either 0, or are a scaled probability distribution.
+Hence $|Tx^\pm| = |x^\pm|$, where $|.|$ denotes the $l_1$ norm (note: $T$, being the transition matrix, must preserve the $l_1$ norm on probability distributions).
+It follows that $|Tx| \leq |x|$ for any vector $x$, so for an eigenvector $Tx = \lambda x$, we must have $|\lambda| \leq 1$.
+
+Using the fact that the graph is connected, it is not difficult to show that an eigenvalue $\lambda = -1$ implies the graph is bipartite, which we assumed is not the case.
+Furthermore, again using the connectedness, it is easy to show that the uniform distribution $x = (1/|V|, ..., 1/|V|)$ is the only eigenvector with eigenvalue 1.
+
+Now we consider $T^mv = \lambda_1^me_1 + ... + \lambda_n^me_n$ as $m\rightarrow\infty$.
+Clearly the uniform component will be the only part that does not tend to zero as $m\rightarrow\infty$, since all other eigenvalues are less than 1 in absolute value.
+This shows that given \emph{any} initial distribution, applying the random walk causes it to converge to a uniform distribution.
+
+In fact, it is not generally difficult to sample from a uniform distribution.
+However, applying this idea with a different transition matrix, we can obtain convergence to a different distribution, though we will not prove convergence here.
+
+\section{The Metropolis algorithm}
+The Metropolis algorithm can, in general, be used to sample from any probability distribution for which we can calculate the ratio of probability for two vertices $v_1$ and $v_2$ (that is, $\frac{P(v_1)}{P(v_2)}$).
+This is a relatively weak requirement, so we can use this algorithm to sample from a broad range of distributions.
+In particular, we can apply this to the Boltzmann distribution, where all we need is the energy of each state in order to calculate the ratio of Boltzmann factors, $e^{-kT(E_1-E_2)}$.
+
+The Metropolis algorithm can be described as follows:
+\begin{enumerate}
+    \item Start at a vertex $v$.
+    \item Select uniformly an adjacent vertex $w$ of $v$.
+    \item Set $v \leftarrow w$ with probability $min\{1, \frac{P(w)}{P(v)}\}$. Otherwise, keep the current value of $v$.
+    \item If algorithm has run for ``enough'' steps, output $v$.
+    \item Repeat until enough samples have been obtained.
+\end{enumerate}
+
+What constitutes ``enough'' steps depends on the graph: this is the number of steps for a distribution close to independent from the initial vertex to be obtained.
+The proof of convergence is technical, and can be found in . % TODO ref
+
+\section{The Wang-Landau algorithm}
+The Wang-Landau algorithm takes a different approach.
+Rather than obtain a Boltzmann distribution directly, the Wang-Landau algorithm calculates an estimate of the density of states $g(E)$.
+It is then possible to obtain a Boltzmann distribution simply by calculating $g(E)e^{-\beta E}$.
+It is also possible to obtain other thermodynamic quantities from $g(E)$.
+
+The algorithm is described in more detail in \cite{WangLandau}, we give a brief overview here.
+We initialize an estimate of the density of states $g(E)$ to 1 for all permitted values of $E$\footnote{This assumes that there are only a finite number of possible values for $E$. This is a restriction of the algorithm.}.
+We perform a random walk in a similar way to the Metropolis algorithm, however, we choose the transition probability to be $min\{1, \frac{g(E(w))}{g(E(v))}\}$.
+That is, we prefer states with a lower $g(E)$.
+We note that for a ``correct'' $g(E)$, this would give us a uniform distribution over energy.
+
+In order to improve the estimate $g(E)$, whenever we visit a state with energy $E$, we multiply the estimate $g(E)$ by a constant $f>1$.
+We expect that states with a higher $g(E)$ will be more often visited; thus the relative value for $g(E)$ at this states will increase.
+
+It is clear that the algorithm can not converge using the above process: at each step, one of the densities of states is multiplied by a fixed constant $f>1$.
+In order to obtain convergence, we need to use a sequence of values $f_i$ converging to 1.
+Hence when we obtain a relatively ``flat'' histogram\footnote{What constitutes a ``flat'' histogram is discussed in \cite{WangLandau}. It is not too important precisely how the ``flatness'' is determined.}, we decrease $f$ (for example by setting $f^\prime = \sqrt{f}$), and repeat the process.
+When a sufficiently small value of $f$ is achieved (for example, $f = 1 + 10^{-8}$), we terminate the algorithm.
+
+Although the convergence of this algorithm was not proved by Wang and Landau, this has been subsequently proven in , under suitable assumptions. % TODO ref
+
+\section{Results}
+Here we present the results of our implementation of these algorithms, applied to the Potts model, on lattices of varying size.
+
+\subsection{Metropolis}
+In applying the Metropolis algorithm, an important consideration is the number of steps to perform.
+In order to allow non-arbitrary comparisons to be made between the behavior at different lattice sizes, we used a number of steps $10^6l^2$, with $l$ the width and height of the lattice (i.e., we set the number of steps to be directly proportional to the number of particles).
+In addition, all of these results were obtained at the transition temperature $\beta = \log(1+\sqrt{10})$.
+
+
+
+\subsection{Wang-Landau}
+\section{Discussion of results}
+\subsection{Behavior for small lattices}
+The behavior of the system for small lattice sizes was somewhat different to that for large lattice sizes at the same temperature.
+We attempt to explain this here.
+
+Firstly, the distribution for small lattice sizes did not appear to be evenly balanced between two metastable phases at the supposed transition temperature $\beta = \log(1+\sqrt q)$, as in larger lattices.
+This is just a consequence of the fact that this transition temperature is only asmyptotically valid (moreover, at very small lattice sizes it is not clear that the phases are really distinct).
+
+Secondly, the distribution for $l = 10$ was not a smooth distribution, instead having large fluctuations over small differences in $E$.
+We explain this not as an effect of the lattice size, but rather just a consequence of the small energies involved, which we discuss more in the next section.
+
+\subsection{Behavior for small energies}
 For small energies the density of states does not have the same smooth behavior as at large energies.
 This is because there are only a small number of possible ways (up to translation, rotation, reflection, and relabelling of spins) of obtaining each of these energies.
 
-As an example, for lattices of size at least 2, there are $q$ $E = 0$ states, $0$ states for $E \in \{1,2,3,5}$, but $q^2$ states for $E = 4$.
+As an example, for lattices of size at least 2, the number of $E = 0$ states is $q$, and there are $0$ states for $E \in \{1,2,3,5\}$, but $q^2$ states for $E = 4$.
 The case for $E = 1$ is shown here.
 
 Suppose that there was a state with $E = 1$.
@@ -12,4 +132,26 @@ Then one particle differs from an adjacent one.
 We can assume without loss of generality that this particle is at position $(1,1)$, and it has a different spin from the particle at $(0,1)$.
 But then $(1,1)$ must have the same spin as $(1,0)$, which has the same spin as $(0,0)$, which has the same spin as $(0,1)$.
 So this is impossible.
+
+\subsection{Performance}
+\subsection{Convergence}
+\section{Conclusion}
+\begin{thebibliography}{9}
+
+\bibitem{WangLandau}
+\newblock {\em {Efficient, Multiple-Range Random Walk Algorithm to Calculate the Density of States}},
+\newblock F. Wang, D. P. Landau,
+\newblock {\em {Physical Review Letters}}, 2001, Vol. 86, Part 10
+
+\bibitem{Janke}
+\newblock {\em {First-Order Phase Transitions}},
+\newblock W. Janke,
+\newblock {\em {Computer Simulations of Surfaces and Interfaces}}, NATO Science Series, II. Mathematics, Physics and Chemistry - Vol. 114, Proceedings of the NATO Advanced Study Institute, Albena, Bulgaria, 9 - 20 September 2002
+
+\end{thebibliography}
+\appendix
+\section{Metropolis implementation}
+\lstinputlisting[language=Python]{../metropolis.py}
+\section{Wang-Landau implementation}
+\lstinputlisting[language=Python]{../wanglandau.py}
 \end{document}
