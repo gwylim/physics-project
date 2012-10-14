@@ -63,10 +63,11 @@ def wanglandau(l, threshold, initial_r, epsilon, inner_loop):
             for x in line:
                 print >>stderr, int(x),
             print >>stderr, '\n',
-        print >>stderr, float(min(nonzero)) / max(nonzero), r
+        ratio = float(min(nonzero)) / sum(nonzero) * len(nonzero)
+        print >>stderr, ratio, r
         stderr.flush()
 
-        if len(hist)-len(nonzero) < 10 and float(min(nonzero)) / max(nonzero) > threshold:
+        if len(hist)-len(nonzero) < 10 and ratio > threshold:
             hist = [0 for i in xrange(max_e+1)]
             r /= 2
         f = open(argv[1], 'w')
