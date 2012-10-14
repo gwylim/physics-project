@@ -1,4 +1,4 @@
-for ((l=15; l<=25; l+=5))
+for ((l=20; l<=25; l+=5))
 do
-    pypy wanglandau.py ds$l h$l $l
+    nice -n19 pypy wanglandau.py ds$l h$l $l
 done
