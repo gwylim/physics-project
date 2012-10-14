@@ -2,7 +2,7 @@ from sys import argv, stderr
 from math import exp
 from copy import copy
 
-start, end, step = float(argv[1]), float(argv[2]), float(argv[3])
+l, start, end, step = int(argv[1]), float(argv[2]), float(argv[3]), float(argv[4])
 g = {}
 while True:
     try:
@@ -24,4 +24,4 @@ for b in xrange(int((end-start)/step)):
     partition = sum([exp(gbeta[i]) for i in g.iterkeys()])
     e = sum([i*exp(gbeta[i]) for i in g.iterkeys()])
     e2 = sum([i*i*exp(gbeta[i]) for i in g.iterkeys()])
-    print beta, beta**2 * (e2 / partition - (e / partition)**2)
+    print beta, beta**2 * (e2 / partition - (e / partition)**2) / l**2
