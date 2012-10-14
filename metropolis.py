@@ -23,23 +23,24 @@ def metropolis(l, n, k, beta):
             for x, y in adjacent(l, a, b):
                 e += 1-delta(lattice[a][b], lattice[x][y])
     for i in xrange(n + k):
-        while True:
-            a, b = randint(0, l-1), randint(0, l-1)
-            new_value = randint(0, q-1)
-            de = 0
-            for x, y in adjacent(l, a, b):
-                de += - delta(new_value, lattice[x][y]) + delta(lattice[a][b], lattice[x][y])
-            if random() < exp(-beta*de):
-                lattice[a][b] = new_value
-                e += de
-                if i >= k: yield (e, lattice)
-                break
+        a, b = randint(0, l-1), randint(0, l-1)
+        new_value = randint(0, q-1)
+        de = 0
+        for x, y in adjacent(l, a, b):
+            de += - delta(new_value, lattice[x][y]) + delta(lattice[a][b], lattice[x][y])
+        if random() < exp(-beta*de):
+            lattice[a][b] = new_value
+            e += de
+        if i >= k: yield (e, lattice)
+'''
         if i%100000 == 0:
             e = 0
             for a in xrange(l):
                 for b in xrange(l):
                     for x, y in adjacent(l, a, b):
                         e += 1-delta(lattice[a][b], lattice[x][y])
+'''
+
 def energy(lattice):
     e = 0
     l = len(lattice)
