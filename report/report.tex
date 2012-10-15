@@ -2,6 +2,7 @@
 \usepackage{amsfonts}
 \usepackage{amsmath}
 \usepackage{listings}
+\usepackage{graphicx}
 \author{Gwylim Ashley}
 \title{A comparison of the Metropolis and Wang-Landau algorithms applied to the Potts model}
 \begin{document}
@@ -12,8 +13,28 @@ In particular, we use the example of the Potts model, which exhibits a phase tra
 We find that the shape of the Boltzmann distribution near the phase transition leads to slow convergence using the Metropolis algorithm for large lattices.
 Some general discussion of these algorithms is also included.
 \end{abstract}
+\tableofcontents
 \section{Introduction}
+Any general method to determine information about a thermodynamic system must look at the microstates of the system.
+For example, to calculate $\langle E\rangle$ at some temperature, we need to calculate $\sum_s E(s)e^{-\beta E(s)}$.
+However, for any system of reasonable size this will be infeasible, since the number of microstates is very large.
+
+Hence instead of looking at all the microstates we can instead look at a representative sample.
+For example, to calculate $\langle E\rangle$, we could choose at random a subset $S$ of states, and calculate $\sum_{s\in S}E(s)e^{-\beta E(s)}$.
+However, in general this will not give good results: the majority of the microstates will not contribute much to this sum, so we will still need a very large sample.\footnote{In particular, selecting microstates uniformly at random is typically equivalent to selecting from a Boltzmann distribution with $T = \infty$. For most systems this will not give good results.}
+
+A better approach is to use a \emph{random walk}.
+Here we consider the microstates as a graph, with edges between microstates that are ``close'' in some sense.
+We perform a random walk on this graph, and by weighting our random walk appropriately, we can obtain a more useful sample of microstates.
+
+In this project two algorithms making use of this general approach are discussed: the Metropolis algorithm and the Wang-Landau algorithm.
+The Metropolis algorithm (also known as the Metropolis-Hastings algorithm) is a general technique for sampling from certain types of probability distributions; here we will apply it to a physical system and obtain the Boltzmann distribution.
+The Wang-Landau algorithm is a more recent innovation which aims to improve on some of the shortcomings of the Metropolis algorithm.
+
+These algorithms were both implemented, and applied to the Potts model (described in section \ref{sec:potts_model}) for comparison.
+
 \subsection{The Potts model}
+\label{sec:potts_model}
 The Potts model consists of an $n\times n$ lattice of particles.
 Each of these particles has a ``spin'', which is an integer in $\{0,...,q-1\}$, where $q$ is a parameter of the model.
 The particles interact only with their nearest neighbors; that is, each particle interacts with four other particles (where additionally we use periodic boundary conditions, so the particles at the edge of the lattice also have four nearest neighbors).
@@ -70,17 +91,20 @@ The Metropolis algorithm can be described as follows:
     \item Select uniformly an adjacent vertex $w$ of $v$.
     \item Set $v \leftarrow w$ with probability $min\{1, \frac{P(w)}{P(v)}\}$. Otherwise, keep the current value of $v$.
     \item If algorithm has run for ``enough'' steps, output $v$.
-    \item Repeat until enough samples have been obtained.
+    \item Repeat 2-5 until enough samples have been obtained.
 \end{enumerate}
 
 What constitutes ``enough'' steps depends on the graph: this is the number of steps for a distribution close to independent from the initial vertex to be obtained.
-The proof of convergence is technical, and can be found in . % TODO ref
+
+This is, in fact, a slightly simplified description.
+In general this does not have to be applied to a graph, and we do not have to select uniformly between ``adjacent'' vertices for the candidate $w$.
+However, this description is valid for the system considered.
 
 \section{The Wang-Landau algorithm}
 The Wang-Landau algorithm takes a different approach.
 Rather than obtain a Boltzmann distribution directly, the Wang-Landau algorithm calculates an estimate of the density of states $g(E)$.
 It is then possible to obtain a Boltzmann distribution simply by calculating $g(E)e^{-\beta E}$.
-It is also possible to obtain other thermodynamic quantities from $g(E)$.
+It is also possible to obtain other thermodynamic quantities directly from $g(E)$.
 
 The algorithm is described in more detail in \cite{WangLandau}, we give a brief overview here.
 We initialize an estimate of the density of states $g(E)$ to 1 for all permitted values of $E$\footnote{This assumes that there are only a finite number of possible values for $E$. This is a restriction of the algorithm.}.
@@ -90,32 +114,109 @@ We note that for a ``correct'' $g(E)$, this would give us a uniform distribution
 
 In order to improve the estimate $g(E)$, whenever we visit a state with energy $E$, we multiply the estimate $g(E)$ by a constant $f>1$.
 We expect that states with a higher $g(E)$ will be more often visited; thus the relative value for $g(E)$ at this states will increase.
+When we have a ``correct'' $g(E)$, then we will visit all energies with equal probability, so the relative values of $g(E)$ will remain the same.
 
-It is clear that the algorithm can not converge using the above process: at each step, one of the densities of states is multiplied by a fixed constant $f>1$.
+However, it is clear that the algorithm can not converge using the above process: at each step, one of the densities of states is multiplied by a fixed constant $f>1$.
+Hence the relative values of $g(E)$ can never remain the same using the above process.
 In order to obtain convergence, we need to use a sequence of values $f_i$ converging to 1.
 Hence when we obtain a relatively ``flat'' histogram\footnote{What constitutes a ``flat'' histogram is discussed in \cite{WangLandau}. It is not too important precisely how the ``flatness'' is determined.}, we decrease $f$ (for example by setting $f^\prime = \sqrt{f}$), and repeat the process.
 When a sufficiently small value of $f$ is achieved (for example, $f = 1 + 10^{-8}$), we terminate the algorithm.
 
-Although the convergence of this algorithm was not proved by Wang and Landau, this has been subsequently proven in , under suitable assumptions. % TODO ref
+\section{Calculations using the density of states}
+\label{sec:calculations}
+Using the density of states, we can compute other thermodynamic quantities.
+An example calculated in \cite{WangLandau} is the heat capacity $C$, defined by $C := \frac{\partial\langle E\rangle}{\partial T}$.
+We show here how this can be calculated using $g(E)$.
+
+We note that $\beta = \frac{1}{T}$, so we can write the above as:
+$$ C = -\beta^2\frac{\partial\langle E\rangle}{\partial\beta}. $$
+
+Now we note that $\langle E\rangle = \frac{1}{Z}\sum_E Eg(E)e^{-\beta E}$, with $Z = \sum_E g(E)e^{-\beta E}$, so that $\langle E\rangle = -\frac{\partial \ln Z}{\partial\beta}$.
+So then we have:
+$$ C = \beta^2\frac{\partial^2 \ln Z}{\partial\beta^2} $$
+$$ = \beta^2\frac{\partial}{\partial\beta}\left(\frac{1}{Z}\frac{\partial Z}{\partial\beta}\right) $$
+$$ = \beta^2\left(\frac{1}{Z}\frac{\partial^2 Z}{\partial\beta^2} - \frac{1}{Z^2}\left(\frac{\partial Z}{\partial\beta}\right)^2\right) $$
+
+Then finally, using $\langle E^2\rangle = \frac{1}{Z}\frac{\partial^2 Z}{\partial\beta^2}$, and $\langle E\rangle = \frac{1}{Z}\frac{\partial Z}{\partial\beta}$, we have:
+$$ C = \beta^2(\langle E^2 \rangle - \langle E \rangle^2) = \beta^2(\frac{1}{Z}\sum_E E^2g(E)e^{-\beta E} - \frac{1}{Z^2}(\sum_E Eg(E)e^{-\beta E})^2), $$
+where $Z$ is calculated by $Z = \sum_E g(E)e^{-\beta E}$.
 
 \section{Results}
 Here we present the results of our implementation of these algorithms, applied to the Potts model, on lattices of varying size.
 
 \subsection{Metropolis}
+\label{sec:metropolis}
 In applying the Metropolis algorithm, an important consideration is the number of steps to perform.
 In order to allow non-arbitrary comparisons to be made between the behavior at different lattice sizes, we used a number of steps $10^6l^2$, with $l$ the width and height of the lattice (i.e., we set the number of steps to be directly proportional to the number of particles).
-In addition, all of these results were obtained at the transition temperature $\beta = \log(1+\sqrt{10})$.
+In addition, all of these results were obtained close to the transition temperature $\beta = \log(1+\sqrt{10})$, specifically at $\beta = 1.424$.
 
+In figures \ref{fig:m10}, \ref{fig:m30}, and \ref{fig:m50}, we give the obtained Boltzmann distribution at $\beta = 1.424$ for lattice sizes of $l = 10$, $l = 30$, and $l = 50$, respectively.
 
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/metropolis/m10.png}
+\caption{Boltzmann distribution for $l = 10$ (Metropolis)}
+\label{fig:m10}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/metropolis/m30.png}
+\caption{Boltzmann distribution for $l = 30$ (Metropolis)}
+\label{fig:m30}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/metropolis/m50.png}
+\caption{Boltzmann distribution for $l = 50$ (Metropolis)}
+\label{fig:m50}
+\end{figure}
 
 \subsection{Wang-Landau}
+In figures \ref{fig:b10}, \ref{fig:b30}, and \ref{fig:b50}, we give the Boltzmann distributions obtained for lattice sizes $l = 10$, $l = 30$, and $l = 50$, respectively, obtained using the Wang-Landau algorithm and using $\beta = 1.424$.
+These are provided for comparison with those obtained in section \ref{sec:metropolis}.
+
+The actual data obtained directly from the Wang-Landau algorithm is the density of states.
+We show the density of states obtained for $l = 10$ and $l = 30$ in figures \ref{fig:s10} and \ref{fig:s30}, respectively.
+
+In figure \ref{fig:capacity}, we show the heat capacity for $l \in\{10,15,20,25,30\}$, using the calculation derived in section \ref{sec:calculations}.
+As expected for a first-order phase transition, this has a sharp peak at the transition temperature.
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/wanglandau/capacity.png}
+\caption{Heat capacity per particle $C = \frac{1}{l^2}\frac{\partial\langle E\rangle}{\partial T}$ for different $l$}
+\label{fig:capacity}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/wanglandau/b10.png}
+\caption{Boltzmann distribution for $l = 10$ (Wang-Landau)}
+\label{fig:b10}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/wanglandau/b30.png}
+\caption{Boltzmann distribution for $l = 30$ (Wang-Landau)}
+\label{fig:b30}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/wanglandau/s10.png}
+\caption{Density of states for $l = 10$ (Wang-Landau)}
+\label{fig:s10}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/wanglandau/s30.png}
+\caption{Density of states for $l = 30$ (Wang-Landau)}
+\label{fig:s30}
+\end{figure}
+
 \section{Discussion of results}
 \subsection{Behavior for small lattices}
 The behavior of the system for small lattice sizes was somewhat different to that for large lattice sizes at the same temperature.
 We attempt to explain this here.
 
-Firstly, the distribution for small lattice sizes did not appear to be evenly balanced between two metastable phases at the supposed transition temperature $\beta = \log(1+\sqrt q)$, as in larger lattices.
-This is just a consequence of the fact that this transition temperature is only asmyptotically valid (moreover, at very small lattice sizes it is not clear that the phases are really distinct).
+Firstly, the distribution for small lattice sizes did not appear to be evenly balanced between two phases at the supposed transition temperature $\beta = \log(1+\sqrt q)$, and in fact the ratio between the probabilities of the two phases varied as a function of lattice size.
+This is just a consequence of the fact that this transition temperature is only asmyptotically valid \footnote{From figure \ref{fig:capacity}, the sequence of heat capacities per particle $C_l$ seems to have a monotonically increasing turning point, and to converge to a delta function for $l \rightarrow \infty$.}(moreover, at very small lattice sizes it is not clear that the phases are really distinct).
 
 Secondly, the distribution for $l = 10$ was not a smooth distribution, instead having large fluctuations over small differences in $E$.
 We explain this not as an effect of the lattice size, but rather just a consequence of the small energies involved, which we discuss more in the next section.
@@ -124,17 +225,17 @@ We explain this not as an effect of the lattice size, but rather just a conseque
 For small energies the density of states does not have the same smooth behavior as at large energies.
 This is because there are only a small number of possible ways (up to translation, rotation, reflection, and relabelling of spins) of obtaining each of these energies.
 
-As an example, for lattices of size at least 2, the number of $E = 0$ states is $q$, and there are $0$ states for $E \in \{1,2,3,5\}$, but $q^2$ states for $E = 4$.
-The case for $E = 1$ is shown here.
+As an example, for lattices of size at least 2, the number of $E = 0$ states is $q$, and there are $0$ states for $E \in \{1,2,3,5\}$, but $l^2q^2$ states for $E = 4$.
 
-Suppose that there was a state with $E = 1$.
-Then one particle differs from an adjacent one.
-We can assume without loss of generality that this particle is at position $(1,1)$, and it has a different spin from the particle at $(0,1)$.
-But then $(1,1)$ must have the same spin as $(1,0)$, which has the same spin as $(0,0)$, which has the same spin as $(0,1)$.
-So this is impossible.
-
-\subsection{Performance}
 \subsection{Convergence}
+For the Metropolis algorithm, we obtained similar results to the Wang-Landau algorithm for $l \leq 30$.
+In the $l = 50$ case, the distribution obtained at the transition temperature (given in figure \ref{fig:m50}) is clearly incorrect.
+While the distribution looks reasonable for low energies, the high energy phase is missing.
+
+This is a consequence of the fact that the Metropolis algorithm visits energies according to the Boltzmann distribution, and only moves between close energy levels.
+The Potts model at the transition temperature contains a gap between the two phases in the Boltzmann distribution, where the system is unlikely to be.
+Since the Metropolis algorithm must pass through this gap many times in order for the distribution to converge, and it is very unlikely to do so, the algorithm will take an impractical number of steps to converge.
+
 \section{Conclusion}
 \begin{thebibliography}{9}
 
@@ -153,5 +254,5 @@ So this is impossible.
 \section{Metropolis implementation}
 \lstinputlisting[language=Python]{../metropolis.py}
 \section{Wang-Landau implementation}
-\lstinputlisting[language=Python]{../wanglandau.py}
+\lstinputlisting[language=Python]{../wanglandau1.py}
 \end{document}
