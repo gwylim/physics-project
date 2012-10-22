@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage{listings}
 \usepackage{graphicx}
+\usepackage{subfig}
 \author{Gwylim Ashley}
 \title{A comparison of the Metropolis and Wang-Landau algorithms applied to the Potts model}
 \begin{document}
@@ -153,8 +154,9 @@ In addition, all of these results were obtained close to the transition temperat
 In figures \ref{fig:m10}, \ref{fig:m30}, and \ref{fig:m50}, we give the obtained Boltzmann distribution at $\beta = 1.424$ for lattice sizes of $l = 10$, $l = 30$, and $l = 50$, respectively.
 
 \begin{figure}[h]
-\includegraphics[height=8cm]{../results/metropolis/m10.png}
-\caption{Boltzmann distribution for $l = 10$ (Metropolis)}
+\centering
+\subfloat{\includegraphics[height=6cm]{../results/metropolis/m10.png}}
+\subfloat{\includegraphics[height=6cm]{../results/wanglandau/b10.png}}
 \label{fig:m10}
 \end{figure}
 
@@ -196,6 +198,12 @@ As expected for a first-order phase transition, this has a sharp peak at the tra
 \includegraphics[height=8cm]{../results/wanglandau/b30.png}
 \caption{Boltzmann distribution for $l = 30$ (Wang-Landau)}
 \label{fig:b30}
+\end{figure}
+
+\begin{figure}[h]
+\includegraphics[height=8cm]{../results/wanglandau/b50.png}
+\caption{Boltzmann distribution for $l = 50$ (Wang-Landau)}
+\label{fig:b50}
 \end{figure}
 
 \begin{figure}[h]
