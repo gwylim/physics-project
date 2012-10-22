@@ -54,14 +54,23 @@ Here we will consider only the case $q = 10$, giving $\beta \approx 1.42$.
 While the Potts model does not describe a physical system, it is a simple model that has interesting thermodynamics.
 Hence this model is useful in testing general algorithms, which can also be applied to other systems.
 
+\subsubsection{Phase transition}
+The Potts model with $q = 10$ has a first order phase transition at $\beta = \log(1+\sqrt q)$.\cite{Janke}
+At the phase transition temperature, both phases can be observed, giving the Boltzmann distribution a two-peaked structure (for example, this is visible in figure \ref{fig:m30}).
+The energy space between these phases is less probable, and in fact becomes exponentially less probable for large lattice sizes.\cite{WangLandau}
+
 \subsection{Random walks}
 We discuss here why random walks are a useful technique for analyzing the thermodynamic properties of systems, among other things.
+
 The essential property of random walks is that they tend to converge to some distribution, and this can allow us to obtain information about the distribution.
-Here we will analyze only the simple case of a random walk on a regular, connected, non-bipartite graph, as an example.
+The distribution that the random walk converges to depends on the graph, and on the way that the next vertex is chosen.
+
+\paragraph{Example}
+Here we will analyze the simple case of a random walk on a regular, connected, non-bipartite graph, as an example.
 
 A random walk is performed by starting at a particular vertex, and iteratively randomly moving to one of the adjacent vertices according to some probability distribution.
 We consider here choosing uniformly between the adjacent vertices.
-In this case, the result of taking a step in the random walk is to multiply the probability distribution over vertices, $v$, by a transition matrix $T$.
+The result of taking a step in the random walk is to multiply the probability distribution over vertices, $v$, by a transition matrix $T$.
 In the special case that the graph is regular, this matrix is symmetric.
 Hence we can write $v = \lambda_1e_1 + ... + \lambda_ne_n$, where $e_1, ..., e_n$ are an eigenbasis of $T$ (using the spectral theorem).
 
@@ -79,12 +88,12 @@ Clearly the uniform component will be the only part that does not tend to zero a
 This shows that given \emph{any} initial distribution, applying the random walk causes it to converge to a uniform distribution.
 
 In fact, it is not generally difficult to sample from a uniform distribution.
-However, applying this idea with a different transition matrix, we can obtain convergence to a different distribution, though we will not prove convergence here.
+However, applying this idea with a different transition matrix, we can obtain convergence to a different distribution.
 
 \section{The Metropolis algorithm}
 The Metropolis algorithm can, in general, be used to sample from any probability distribution for which we can calculate the ratio of probability for two vertices $v_1$ and $v_2$ (that is, $\frac{P(v_1)}{P(v_2)}$).
 This is a relatively weak requirement, so we can use this algorithm to sample from a broad range of distributions.
-In particular, we can apply this to the Boltzmann distribution, where all we need is the energy of each state in order to calculate the ratio of Boltzmann factors, $e^{-kT(E_1-E_2)}$.
+In particular, we can apply this to the Boltzmann distribution, where all we need is the energy of each state in order to calculate the ratio of Boltzmann factors, $e^{-(E_1-E_2)/kT}$.
 
 The Metropolis algorithm can be described as follows:
 \begin{enumerate}
@@ -121,7 +130,10 @@ However, it is clear that the algorithm can not converge using the above process
 Hence the relative values of $g(E)$ can never remain the same using the above process.
 In order to obtain convergence, we need to use a sequence of values $f_i$ converging to 1.
 Hence when we obtain a relatively ``flat'' histogram\footnote{What constitutes a ``flat'' histogram is discussed in \cite{WangLandau}. It is not too important precisely how the ``flatness'' is determined.}, we decrease $f$ (for example by setting $f^\prime = \sqrt{f}$), and repeat the process.
-When a sufficiently small value of $f$ is achieved (for example, $f = 1 + 10^{-8}$), we terminate the algorithm.
+When a sufficiently small value of $f$ is achieved (for example, $f = e^{10^{-8}}$), we terminate the algorithm.
+
+An optimization that can be used with the Wang-Landau algorithm is to divide the energy space into a number of ranges, and perform random walks in each of these independently.
+This speeds up the computation since the number of states in different energy ranges varies significantly, and additionally these random walks can be executed in parallel.
 
 \section{Calculations using the density of states}
 \label{sec:calculations}
@@ -173,6 +185,9 @@ In figures \ref{fig:m10}, \ref{fig:m30}, and \ref{fig:m50}, we give the obtained
 \end{figure}
 
 \subsection{Wang-Landau}
+For the Wang-Landau algorithm, we ran the algorithm with $f_1 = e$, and $f_i = \sqrt{f_{i-1}}$, with a final value of $f = e^{10^{-8}}$.
+The number of ranges used in all cases was 15.
+
 In figures \ref{fig:b10}, \ref{fig:b30}, and \ref{fig:b50}, we give the Boltzmann distributions obtained for lattice sizes $l = 10$, $l = 30$, and $l = 50$, respectively, obtained using the Wang-Landau algorithm and using $\beta = 1.424$.
 These are provided for comparison with those obtained in section \ref{sec:metropolis}.
 
